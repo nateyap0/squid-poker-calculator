@@ -43,7 +43,6 @@ h1{text-align:center;font-size:1.6rem;margin-bottom:4px;color:#e6edf3}
 .progress-wrap.active{display:block}
 .progress-bar{height:100%;background:#1f6feb;border-radius:2px;transition:width .15s;width:0%}
 .tier-layout{display:flex;gap:12px;align-items:flex-start;border:1px solid #30363d;border-radius:6px;padding:12px 14px}
-.tier-preset-col{display:flex;flex-direction:column;justify-content:space-evenly;flex-shrink:0;align-self:stretch}
 .tier-cols{display:flex;gap:12px;flex:1}
 .tier-col{flex:1}
 .tier-col table{width:100%;border-collapse:collapse;font-size:.84rem}
@@ -52,7 +51,7 @@ h1{text-align:center;font-size:1.6rem;margin-bottom:4px;color:#e6edf3}
 .tier-col td:first-child{color:#8b949e;width:28px}
 .tier-col input{background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#e6edf3;padding:4px 6px;font-size:.84rem;width:48px;text-align:center}
 .tier-col input:focus{outline:none;border-color:#58a6ff}
-@media(max-width:480px){.tier-layout{flex-direction:column}.tier-preset-col{flex-direction:row;flex-wrap:wrap;gap:4px}.tier-cols{flex-wrap:wrap}.tier-col{min-width:calc(50% - 6px)}.tier-col input{width:100%;padding:6px 8px;font-size:.9rem;-moz-appearance:textfield}.tier-col input::-webkit-outer-spin-button,.tier-col input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}}
+@media(max-width:480px){.tier-col input{width:100%;padding:6px 8px;font-size:.9rem;-moz-appearance:textfield}.tier-col input::-webkit-outer-spin-button,.tier-col input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}}
 .vt{width:100%;border-collapse:collapse;font-size:.82rem}
 .vt th{text-align:left;padding:6px 8px;border-bottom:1px solid #30363d;color:#8b949e;font-weight:500}
 .vt td{padding:6px 8px;border-bottom:1px solid #21262d}
@@ -114,8 +113,8 @@ h1{text-align:center;font-size:1.6rem;margin-bottom:4px;color:#e6edf3}
   <!-- Multiplier: tier grid -->
   <div class="input-group fmt-multiplier hidden" id="tier-wrap">
     <label>Multiplier Tiers</label>
+    <div class="preset-row" id="tier-presets" style="margin-bottom:8px"></div>
     <div class="tier-layout">
-      <div class="tier-preset-col" id="tier-presets"></div>
       <div class="tier-cols" id="tier-cols"></div>
     </div>
   </div>
@@ -738,7 +737,7 @@ function syncTiers(){
   buildTierPresets();
 }
 function renderTiers(){
-  const nc=4;
+  const nc=3;
   const perCol=Math.ceil(tiers.length/nc);
   const cols=[],offsets=[];
   for(let c=0;c<nc;c++){
