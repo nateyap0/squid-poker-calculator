@@ -212,8 +212,12 @@ h1{text-align:center;font-size:1.6rem;margin-bottom:4px;color:#e6edf3}
       <span class="result-value" id="r-best">—</span>
     </div>
     <div class="result-card">
-      <span class="result-label">Worst Case</span>
+      <span class="result-label">EV if Lose (0 squids)</span>
       <span class="result-value" id="r-worst">—</span>
+    </div>
+    <div class="result-card">
+      <span class="result-label">Worst Case</span>
+      <span class="result-value" id="r-true-worst">—</span>
     </div>
   </div>
 
@@ -822,6 +826,23 @@ function showResults(d,cfg){
   $('r-hands').textContent=d.aH.toFixed(1);
   $('r-best').textContent=fm(d.mx); $('r-best').className='result-value positive';
   $('r-worst').textContent=fm(d.mn); $('r-worst').className='result-value negative';
+
+  // True worst case: absolute floor
+  let trueWorst;
+  if(cfg.heroSquids===0){
+    if(cfg.format==='single') trueWorst=-cfg.penalty*(cfg.n-1);
+    else if(cfg.format==='progressive') trueWorst=-cfg.penalty*cfg.totalSquids;
+    else{let m=1;for(const t of cfg.tiers)if(t.squids<=cfg.totalSquids)m=t.mult;trueWorst=-cfg.penalty*cfg.totalSquids*m;}
+  }else{
+    if(cfg.format==='single') trueWorst=cfg.penalty;
+    else{
+      let hp=cfg.penalty*cfg.heroSquids;
+      if(cfg.format==='multiplier'){let m=1;for(const t of cfg.tiers)if(t.squids<=cfg.heroSquids)m=t.mult;hp*=m;}
+      const minLosers=Math.max(0,(cfg.n-1)-(cfg.totalSquids-cfg.heroSquids));
+      trueWorst=hp*minLosers;
+    }
+  }
+  $('r-true-worst').textContent=fm(trueWorst); $('r-true-worst').className='result-value '+ec(trueWorst);
 
   if(d.nsv!==null){
     $('r-nsv-card').style.display='';
