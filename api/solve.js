@@ -240,6 +240,8 @@ function solveProgMult(cfg) {
 }
 
 // === VERCEL HANDLER ===
+const { verifyGoogleToken } = require('./_lib/auth');
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -266,6 +268,18 @@ module.exports = async function handler(req, res) {
   }
   if (!['single', 'progressive', 'multiplier'].includes(format)) {
     return res.status(400).json({ error: 'Format must be single, progressive, or multiplier' });
+  }
+
+  // Auth required for progressive/multiplier
+  if (format !== 'single') {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Sign in with Google to use this format' });
+    }
+    const user = await verifyGoogleToken(auth.slice(7));
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid or expired token. Please sign in again.' });
+    }
   }
 
   try {
