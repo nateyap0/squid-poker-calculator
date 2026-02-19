@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squid Poker Value Calculator</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh;padding:16px;line-height:1.5}
+h1{text-align:center;font-size:1.6rem;margin-bottom:4px;color:#e6edf3}
+.subtitle{text-align:center;font-size:.85rem;color:#8b949e;margin-bottom:16px}
+.format-tabs{display:flex;justify-content:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.format-tab{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.9rem;transition:all .15s}
+.format-tab:hover{border-color:#58a6ff}
+.format-tab.active{background:#1f6feb;border-color:#1f6feb;color:#fff;font-weight:600}
+.panel{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:12px;max-width:560px;margin:0 auto}
+.section-label{font-size:.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #21262d;padding-bottom:4px;margin-top:4px}
+.input-group{display:flex;flex-direction:column;gap:4px}
+.input-group label{font-size:.8rem;color:#c9d1d9;font-weight:500}
+.input-group input,.input-group select{background:#0d1117;border:1px solid #30363d;border-radius:4px;color:#e6edf3;padding:8px 10px;font-size:.95rem;width:100%}
+.input-group input:focus,.input-group select:focus{outline:none;border-color:#58a6ff}
+.input-group input::-webkit-inner-spin-button{height:40px;width:20px;opacity:1}
+.input-row{display:flex;gap:10px}
+.input-row .input-group{flex:1}
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.9rem;font-weight:600;transition:all .15s}
+.btn-primary{background:#238636;color:#fff}
+.btn-primary:hover{background:#2ea043}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:4px 10px;font-size:.75rem}
+.toggle-row{display:flex;align-items:center;gap:8px;font-size:.85rem}
+.toggle{position:relative;width:36px;height:20px;background:#30363d;border-radius:10px;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:#238636}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:#e6edf3;border-radius:50%;transition:transform .2s}
+.toggle.on::after{transform:translateX(16px)}
+.results{display:flex;flex-direction:column;gap:8px}
+.result-card{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center}
+.result-label{font-size:.8rem;color:#c9d1d9}
+.result-value{font-size:1.05rem;font-weight:600;color:#e6edf3}
+.result-value.positive{color:#3fb950}
+.result-value.negative{color:#f85149}
+.result-value.neutral{color:#d29922}
+.progress-wrap{height:4px;background:#30363d;border-radius:2px;overflow:hidden;display:none}
+.progress-wrap.active{display:block}
+.progress-bar{height:100%;background:#1f6feb;border-radius:2px;transition:width .15s;width:0%}
+.tier-layout{display:flex;gap:12px;align-items:flex-start;border:1px solid #30363d;border-radius:6px;padding:12px 14px}
+.tier-cols{display:flex;gap:12px;flex:1}
+.tier-col{flex:1}
+.tier-col table{width:100%;border-collapse:collapse;font-size:.84rem}
+.tier-col th{text-align:left;padding:4px 6px;border-bottom:1px solid #30363d;color:#8b949e;font-weight:500;font-size:.75rem}
+.tier-col td{padding:4px 6px;border-bottom:1px solid #21262d}
+.tier-col td:first-child{color:#8b949e;width:28px}
+.tier-col input{background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#e6edf3;padding:4px 6px;font-size:.84rem;width:48px;text-align:center}
+.tier-col input:focus{outline:none;border-color:#58a6ff}
+@media(max-width:480px){.tier-col input{width:100%;padding:6px 8px;font-size:.9rem;-moz-appearance:textfield}.tier-col input::-webkit-outer-spin-button,.tier-col input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}}
+.vt{width:100%;border-collapse:collapse;font-size:.82rem}
+.vt th{text-align:left;padding:6px 8px;border-bottom:1px solid #30363d;color:#8b949e;font-weight:500}
+.vt td{padding:6px 8px;border-bottom:1px solid #21262d}
+.vt tr.current{background:#1f6feb22}
+.vt .mono{font-family:monospace;font-size:.85rem}
+.chart-wrap{margin-top:6px}
+.chart-title{font-size:.8rem;color:#c9d1d9;margin-bottom:4px;font-weight:500}
+.histogram{display:flex;align-items:flex-end;gap:2px;height:80px}
+.hist-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+.hist-bar{width:100%;min-width:8px;border-radius:2px 2px 0 0;transition:height .3s}
+.hist-label{font-size:.55rem;color:#8b949e;margin-top:2px;white-space:nowrap}
+.hist-pct{font-size:.55rem;color:#c9d1d9;margin-bottom:1px}
+.hidden{display:none !important}
+.preset-row{display:flex;gap:4px;flex-wrap:wrap}
+.preset-btn{padding:4px 10px;border:1px solid #30363d;border-radius:4px;background:#0d1117;color:#c9d1d9;cursor:pointer;font-size:.75rem;transition:all .15s}
+.preset-btn:hover{border-color:#58a6ff}
+.preset-btn.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.opp-dist-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.opp-dist-grid .opp-input{display:flex;flex-direction:column;align-items:center;gap:2px}
+.opp-dist-grid .opp-input label{font-size:.7rem;color:#8b949e}
+.opp-dist-grid .opp-input input{background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#e6edf3;padding:8px 10px;font-size:.95rem;width:66px;text-align:center}
+.opp-dist-grid .opp-input input::-webkit-inner-spin-button{height:36px;width:22px;opacity:1}
+.opp-dist-grid .opp-input input:focus{outline:none;border-color:#58a6ff}
+.opp-dist-sum{font-size:.75rem;margin-top:4px}
+.opp-dist-sum.valid{color:#3fb950}
+.opp-dist-sum.invalid{color:#f85149}
+</style>
+</head>
+<body>
+
+<h1>Squid Poker Value Calculator</h1>
+<p class="subtitle">Calculate the value of each squid from any game state</p>
+
+<div class="format-tabs">
+  <div class="format-tab active" data-fmt="single" onclick="setFormat('single')">Single Squid</div>
+  <div class="format-tab" data-fmt="progressive" onclick="setFormat('progressive')">Progressive</div>
+  <div class="format-tab" data-fmt="multiplier" onclick="setFormat('multiplier')">Multiplier</div>
+</div>
+
+<div class="panel">
+  <div class="input-row">
+    <div class="input-group">
+      <label>Players</label>
+      <input type="number" id="players" min="3" max="10" value="6">
+    </div>
+    <div class="input-group">
+      <label>Your Win Rate (%)</label>
+      <input type="number" id="winrate" min="1" max="80" step="0.1" value="">
+    </div>
+  </div>
+
+  <div class="input-row">
+    <div class="input-group">
+      <label>Penalty ($)</label>
+      <input type="number" id="penalty" min="1" max="10000" value="100">
+    </div>
+  </div>
+
+  <!-- Multiplier: tier grid -->
+  <div class="input-group fmt-multiplier hidden" id="tier-wrap">
+    <label>Multiplier Tiers</label>
+    <div class="preset-row" id="tier-presets" style="margin-bottom:8px"></div>
+    <div class="tier-layout">
+      <div class="tier-cols" id="tier-cols"></div>
+    </div>
+  </div>
+
+  <div class="section-label">Game State</div>
+
+  <div class="input-row">
+    <div class="input-group">
+      <label>Total Squids</label>
+      <input type="number" id="total-squids" min="2" max="30" value="5">
+    </div>
+    <div class="input-group">
+      <label>Squids Dealt</label>
+      <input type="number" id="squids-dealt" min="0" max="29" value="0">
+    </div>
+    <div class="input-group">
+      <label>Your Squids</label>
+      <input type="number" id="hero-squids" min="0" max="29" value="0">
+    </div>
+  </div>
+
+  <!-- Progressive/Multiplier: squid count presets -->
+  <div class="fmt-progressive hidden" id="squid-presets-wrap">
+    <div class="preset-row" id="squid-presets"></div>
+  </div>
+
+  <!-- Single: sudden death -->
+  <div class="input-row fmt-single" id="sudden-wrap">
+    <div class="input-group">
+      <label>SD Orbit (hands)</label>
+      <input type="number" id="sd-orbit" min="1" max="20" value="6">
+    </div>
+    <div class="input-group">
+      <label>&nbsp;</label>
+      <div class="toggle-row">
+        <div class="toggle" id="sudden-toggle" onclick="toggleSudden()"></div>
+        <span>Sudden Death</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progressive/Multiplier: 2 squids this hand -->
+  <div class="fmt-progressive hidden" id="dph-wrap">
+    <div class="toggle-row">
+      <div class="toggle" id="dph-toggle" onclick="toggleDoublePerHand()"></div>
+      <span>2 squids awarded this hand</span>
+    </div>
+  </div>
+
+  <!-- Progressive/Multiplier: final double -->
+  <div class="fmt-progressive hidden" id="fd-wrap">
+    <div class="toggle-row">
+      <div class="toggle" id="fd-toggle" onclick="toggleFinalDouble()"></div>
+      <span>Last 2 squids awarded in 1 hand</span>
+    </div>
+  </div>
+
+  <!-- Progressive/Multiplier: opponent squid distribution -->
+  <div id="opp-dist-wrap" style="display:none">
+    <div class="toggle-row">
+      <div class="toggle" id="opp-dist-toggle" onclick="toggleOppDist()"></div>
+      <span>Specify Opponent Squids</span>
+    </div>
+    <div id="opp-dist-grid-wrap" class="hidden">
+      <div class="opp-dist-grid" id="opp-dist-grid"></div>
+      <div class="opp-dist-sum" id="opp-dist-sum"></div>
+    </div>
+  </div>
+
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-bar" id="progress"></div>
+  </div>
+
+  <button class="btn btn-primary" id="run-btn" onclick="run()">Calculate</button>
+
+  <div class="results" id="results" style="display:none">
+    <div class="result-card">
+      <span class="result-label">EV from Here</span>
+      <span class="result-value" id="r-ev">—</span>
+    </div>
+    <div class="result-card">
+      <span class="result-label">P(You Lose)</span>
+      <span class="result-value" id="r-plose">—</span>
+    </div>
+    <div class="result-card" id="r-nsv-card">
+      <span class="result-label">Value of Next Squid</span>
+      <span class="result-value" id="r-nsv">—</span>
+    </div>
+    <div class="result-card">
+      <span class="result-label">Avg Hands Remaining</span>
+      <span class="result-value" id="r-hands">—</span>
+    </div>
+    <div class="result-card">
+      <span class="result-label">Best Case</span>
+      <span class="result-value" id="r-best">—</span>
+    </div>
+    <div class="result-card">
+      <span class="result-label">EV if Lose (0 squids)</span>
+      <span class="result-value" id="r-worst">—</span>
+    </div>
+    <div class="result-card">
+      <span class="result-label">Worst Case</span>
+      <span class="result-value" id="r-true-worst">—</span>
+    </div>
+  </div>
+
+  <div id="vt-wrap" style="display:none">
+    <div class="section-label" style="margin-top:8px">Squid Value Breakdown</div>
+    <table class="vt" id="vt-table"></table>
+  </div>
+
+  <div class="chart-wrap" id="hist-wrap" style="display:none">
+    <div class="chart-title">Payout Distribution</div>
+    <div class="histogram" id="histogram"></div>
+  </div>
+</div>
+
+<script>
+let currentFormat = 'single';
+let suddenDeath = false;
+let finalDouble = false;
+let doublePerHand = false;
+let tiers = [
+  {squids:1,mult:1},{squids:2,mult:1},{squids:3,mult:2},{squids:4,mult:2},{squids:5,mult:3}
+];
+let specifyOppDist = false;
+let oppDist = [];
+
+// ===== FORMAT =====
+function setFormat(fmt){
+  currentFormat=fmt;
+  document.querySelectorAll('.format-tab').forEach(t=>t.classList.toggle('active',t.dataset.fmt===fmt));
+  const show=(s,v)=>document.querySelectorAll(s).forEach(el=>el.classList.toggle('hidden',!v));
+  show('.fmt-single',fmt==='single');
+  show('.fmt-progressive',fmt==='progressive'||fmt==='multiplier');
+  show('.fmt-multiplier',fmt==='multiplier');
+  syncTotalSquids();
+  updatePlaceholder();
+  buildPresets();
+  updateOppDistVisibility();
+}
+
+function syncTotalSquids(){
+  const n=getN();
+  const el=document.getElementById('total-squids');
+  if(currentFormat==='single'){
+    el.value=n-1;
+    el.readOnly=true;
+    el.style.opacity='.6';
+  } else {
+    el.readOnly=false;
+    el.style.opacity='1';
+  }
+  clampInputs();
+  syncTiers();
+}
+
+function getN(){ return parseInt(document.getElementById('players').value)||6; }
+
+function clampInputs(){
+  const tSq=parseInt(document.getElementById('total-squids').value)||1;
+  const sdEl=document.getElementById('squids-dealt');
+  const hsEl=document.getElementById('hero-squids');
+  let sd=parseInt(sdEl.value)||0;
+  let hs=parseInt(hsEl.value)||0;
+  const maxDealt=tSq-1; // game not yet over
+  if(sd>maxDealt){sd=maxDealt;sdEl.value=sd;}
+  if(sd<0){sd=0;sdEl.value=0;}
+  const maxHero=currentFormat==='single'?Math.min(1,sd):sd;
+  if(hs>maxHero){hs=maxHero;hsEl.value=hs;}
+  if(hs<0){hs=0;hsEl.value=0;}
+  // Opponent squids can't exceed n-1 opponents
+  const n=getN();
+  const oppTot=sd-hs;
+  if(currentFormat==='single'&&oppTot>n-1){
+    sdEl.value=hs+(n-1);
+  }
+}
+
+function updatePlaceholder(){
+  const n=getN();
+  const wr=document.getElementById('winrate');
+  const newDefault=(100/n).toFixed(1);
+  wr.value='';
+  wr.placeholder=newDefault;
+}
+
+// ===== SUDDEN DEATH =====
+function toggleSudden(){
+  suddenDeath=!suddenDeath;
+  document.getElementById('sudden-toggle').classList.toggle('on',suddenDeath);
+}
+
+// ===== FINAL DOUBLE =====
+function getRem(){
+  const tSq=parseInt(document.getElementById('total-squids').value)||1;
+  const sD=parseInt(document.getElementById('squids-dealt').value)||0;
+  return tSq-sD;
+}
+function toggleFinalDouble(){
+  const rem=getRem();
+  if(!finalDouble&&rem<2) return;
+  if(!finalDouble&&doublePerHand&&rem<4) return;
+  finalDouble=!finalDouble;
+  document.getElementById('fd-toggle').classList.toggle('on',finalDouble);
+}
+
+// ===== DOUBLE PER HAND =====
+function toggleDoublePerHand(){
+  const rem=getRem();
+  if(!doublePerHand&&rem<2) return;
+  if(!doublePerHand&&finalDouble&&rem<4) return;
+  doublePerHand=!doublePerHand;
+  document.getElementById('dph-toggle').classList.toggle('on',doublePerHand);
+}
+
+// Re-validate toggles when inputs change
+function revalidateToggles(){
+  const rem=getRem();
+  if(rem<2){
+    if(finalDouble){finalDouble=false;document.getElementById('fd-toggle').classList.remove('on');}
+    if(doublePerHand){doublePerHand=false;document.getElementById('dph-toggle').classList.remove('on');}
+  }else if(rem<4&&finalDouble&&doublePerHand){
+    doublePerHand=false;document.getElementById('dph-toggle').classList.remove('on');
+  }
+}
+
+// ===== OPPONENT DISTRIBUTION =====
+function toggleOppDist(){
+  const sD=parseInt(document.getElementById('squids-dealt').value)||0;
+  const hSq=parseInt(document.getElementById('hero-squids').value)||0;
+  if(!specifyOppDist&&sD-hSq<=0) return;
+  specifyOppDist=!specifyOppDist;
+  document.getElementById('opp-dist-toggle').classList.toggle('on',specifyOppDist);
+  document.getElementById('opp-dist-grid-wrap').classList.toggle('hidden',!specifyOppDist);
+  if(specifyOppDist) autoPopulateOppDist();
+  validateOppDist();
+}
+function autoPopulateOppDist(){
+  const nO=getN()-1;
+  const sD=parseInt(document.getElementById('squids-dealt').value)||0;
+  const hSq=parseInt(document.getElementById('hero-squids').value)||0;
+  const oppTotal=Math.max(0,sD-hSq);
+  oppDist=new Array(nO).fill(0);
+  for(let i=0;i<oppTotal;i++) oppDist[i%nO]++;
+  renderOppDist();
+}
+function renderOppDist(){
+  const nO=getN()-1;
+  while(oppDist.length<nO) oppDist.push(0);
+  while(oppDist.length>nO) oppDist.pop();
+  const grid=document.getElementById('opp-dist-grid');
+  grid.innerHTML=oppDist.map((v,i)=>
+    `<div class="opp-input"><label>O${i+1}</label><input type="number" min="0" max="29" value="${v}" oninput="setOppDist(${i},this.value)"></div>`
+  ).join('');
+  validateOppDist();
+}
+function setOppDist(idx,val){
+  oppDist[idx]=parseInt(val)||0;
+  validateOppDist();
+}
+function validateOppDist(){
+  if(!specifyOppDist||currentFormat==='single'){
+    document.getElementById('run-btn').disabled=false;
+    return true;
+  }
+  const sD=parseInt(document.getElementById('squids-dealt').value)||0;
+  const hSq=parseInt(document.getElementById('hero-squids').value)||0;
+  const target=Math.max(0,sD-hSq);
+  const sum=oppDist.reduce((a,b)=>a+b,0);
+  const valid=sum===target;
+  const el=document.getElementById('opp-dist-sum');
+  el.textContent='Total: '+sum+' / '+target;
+  el.className='opp-dist-sum '+(valid?'valid':'invalid');
+  document.getElementById('run-btn').disabled=!valid;
+  return valid;
+}
+function updateOppDistVisibility(){
+  const el=document.getElementById('opp-dist-wrap');
+  const sD=parseInt(document.getElementById('squids-dealt').value)||0;
+  const hSq=parseInt(document.getElementById('hero-squids').value)||0;
+  const show=currentFormat!=='single'&&(sD-hSq)>0;
+  el.style.display=show?'':'none';
+  if(!show&&specifyOppDist){
+    specifyOppDist=false;
+    document.getElementById('opp-dist-toggle').classList.remove('on');
+    document.getElementById('opp-dist-grid-wrap').classList.add('hidden');
+    document.getElementById('run-btn').disabled=false;
+  }
+  if(show&&specifyOppDist) renderOppDist();
+}
+
+// ===== SQUID PRESETS =====
+function buildPresets(){
+  const n=getN();
+  const wrap=document.getElementById('squid-presets');
+  const cur=parseInt(document.getElementById('total-squids').value)||n+1;
+  const ps=[
+    {v:Math.floor(1.5*n),l:'\u230A1.5N\u230B='+Math.floor(1.5*n)},
+    {v:Math.ceil(1.5*n),l:'\u23081.5N\u2309='+Math.ceil(1.5*n)},
+    {v:n+1,l:'N+1='+(n+1)},
+    {v:n+2,l:'N+2='+(n+2)},
+    {v:n+3,l:'N+3='+(n+3)},
+  ];
+  wrap.innerHTML=ps.map(p=>
+    `<div class="preset-btn${p.v===cur?' active':''}" onclick="setPreset(${p.v},this)">${p.l}</div>`
+  ).join('');
+}
+
+function setPreset(v,el){
+  document.getElementById('total-squids').value=v;
+  document.querySelectorAll('#squid-presets .preset-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  clampInputs();
+  syncTiers();
+}
+
+// ===== TIER PRESETS =====
+let activeTierPreset = null;
+const tierPresets = [
+  { id:'f1', label:'3=2x, 5=3x', fn:sq => sq<=2?1:sq<=4?2:3 },
+  { id:'f2', label:'3=2x, 5=3x, 7=4x', fn:sq => sq<=2?1:sq<=4?2:sq<=6?3:4 },
+];
+function buildTierPresets(){
+  const wrap=document.getElementById('tier-presets');
+  wrap.innerHTML=tierPresets.map(p=>
+    `<div class="preset-btn${activeTierPreset===p.id?' active':''}" onclick="applyTierPreset('${p.id}')">${p.label}</div>`
+  ).join('')+
+    `<div class="preset-btn${activeTierPreset===null?' active':''}" onclick="applyTierPreset(null)">Custom</div>`;
+}
+function applyTierPreset(id){
+  activeTierPreset=id;
+  if(id){
+    const preset=tierPresets.find(p=>p.id===id);
+    for(let i=0;i<tiers.length;i++) tiers[i].mult=preset.fn(tiers[i].squids);
+  }
+  document.getElementById('tier-cols').style.visibility=id?'hidden':'visible';
+  renderTiers();
+  buildTierPresets();
+}
+
+// ===== TIERS =====
+function syncTiers(){
+  const tSq=parseInt(document.getElementById('total-squids').value)||5;
+  // Grow or shrink tiers to match totalSquids
+  while(tiers.length<tSq){
+    const prev=tiers.length>0?tiers[tiers.length-1].mult:1;
+    tiers.push({squids:tiers.length+1,mult:prev});
+  }
+  while(tiers.length>tSq) tiers.pop();
+  // Ensure squid numbers are correct
+  for(let i=0;i<tiers.length;i++) tiers[i].squids=i+1;
+  if(activeTierPreset) applyTierPreset(activeTierPreset);
+  else renderTiers();
+  buildTierPresets();
+}
+function renderTiers(){
+  const nc=3;
+  const perCol=Math.ceil(tiers.length/nc);
+  const cols=[],offsets=[];
+  for(let c=0;c<nc;c++){
+    const start=c*perCol;
+    cols.push(tiers.slice(start,start+perCol));
+    offsets.push(start);
+  }
+  document.getElementById('tier-cols').innerHTML=cols.map((col,ci)=>{
+    if(!col.length) return '';
+    let h='<div class="tier-col"><table><thead><tr><th>#</th><th>Mult(X)</th></tr></thead><tbody>';
+    col.forEach((t,i)=>{
+      const idx=offsets[ci]+i;
+      h+=`<tr><td>${t.squids}</td><td><input type="number" min="1" step="1" value="${t.mult}" onchange="setTier(${idx},this.value)"></td></tr>`;
+    });
+    return h+'</tbody></table></div>';
+  }).join('');
+}
+function setTier(idx,val){
+  const v=parseFloat(val)||1;
+  tiers[idx].mult=v;
+  // Cascade down: any tier below with a smaller value gets bumped up
+  for(let i=idx+1;i<tiers.length;i++){
+    if(tiers[i].mult<v) tiers[i].mult=v;
+  }
+  activeTierPreset=null;
+  renderTiers();
+  buildTierPresets();
+}
+
+// ===== CONFIG =====
+function getConfig(){
+  const n=getN();
+  const wrIn=document.getElementById('winrate').value;
+  const wr=wrIn?parseFloat(wrIn)/100:1/n;
+  return {
+    n, heroWinRate:wr,
+    penalty:parseFloat(document.getElementById('penalty').value)||100,
+    format:currentFormat,
+    totalSquids:parseInt(document.getElementById('total-squids').value)||n-1,
+    squidsDealt:parseInt(document.getElementById('squids-dealt').value)||0,
+    heroSquids:parseInt(document.getElementById('hero-squids').value)||0,
+    suddenDeath:currentFormat==='single'?suddenDeath:false,
+    sdOrbit:parseInt(document.getElementById('sd-orbit').value)||n,
+    finalDouble:currentFormat!=='single'?finalDouble:false,
+    doublePerHand:currentFormat!=='single'?doublePerHand:false,
+    tiers:[...tiers],
+    oppDist:specifyOppDist&&currentFormat!=='single'?[...oppDist]:null
+  };
+}
+
+// ===== RUN =====
+async function run(){
+  clampInputs();
+  const cfg=getConfig();
+  const btn=document.getElementById('run-btn');
+  const pw=document.getElementById('progress-wrap');
+  const pb=document.getElementById('progress');
+  btn.disabled=true; pw.classList.add('active'); pb.style.width='30%';
+  try{
+    const resp=await fetch('/api/solve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
+    pb.style.width='80%';
+    if(!resp.ok){const err=await resp.json().catch(()=>({error:'Server error'}));throw new Error(err.error||'Request failed');}
+    const d=await resp.json();
+    pb.style.width='100%';
+    showResults(d,cfg);
+  }catch(e){
+    alert('Calculation error: '+e.message);
+  }finally{
+    setTimeout(()=>pw.classList.remove('active'),300);
+    btn.disabled=false;
+    validateOppDist();
+  }
+}
+
+// ===== DISPLAY =====
+function $(id){return document.getElementById(id);}
+function fm(v){return(v>=0?'+':'')+('$'+Math.abs(v).toFixed(2));}
+function ec(v){return v>0.5?'positive':v<-0.5?'negative':'neutral';}
+
+function showResults(d,cfg){
+  $('results').style.display='';
+  $('r-ev').textContent=fm(d.ev)+(d.analytical?' (exact)':''); $('r-ev').className='result-value '+ec(d.ev);
+  $('r-plose').textContent=(d.pL*100).toFixed(1)+'%';
+  $('r-plose').className='result-value '+(d.pL>1/cfg.n?'negative':'positive');
+  $('r-hands').textContent=d.aH.toFixed(1);
+  $('r-best').textContent=fm(d.mx); $('r-best').className='result-value positive';
+  $('r-worst').textContent=fm(d.mn); $('r-worst').className='result-value negative';
+
+  // True worst case: absolute floor
+  let trueWorst;
+  if(cfg.heroSquids===0){
+    if(cfg.format==='single') trueWorst=-cfg.penalty*(cfg.n-1);
+    else if(cfg.format==='progressive') trueWorst=-cfg.penalty*cfg.totalSquids;
+    else{let m=1;for(const t of cfg.tiers)if(t.squids<=cfg.totalSquids)m=t.mult;trueWorst=-cfg.penalty*cfg.totalSquids*m;}
+  }else{
+    if(cfg.format==='single') trueWorst=cfg.penalty;
+    else{
+      let hp=cfg.penalty*cfg.heroSquids;
+      if(cfg.format==='multiplier'){let m=1;for(const t of cfg.tiers)if(t.squids<=cfg.heroSquids)m=t.mult;hp*=m;}
+      const minLosers=Math.max(0,(cfg.n-1)-(cfg.totalSquids-cfg.heroSquids));
+      trueWorst=hp*minLosers;
+    }
+  }
+  $('r-true-worst').textContent=fm(trueWorst); $('r-true-worst').className='result-value '+ec(trueWorst);
+
+  if(d.nsv!==null){
+    $('r-nsv-card').style.display='';
+    $('r-nsv-card').querySelector('.result-label').textContent=cfg.doublePerHand?'Value of Winning This Hand':'Value of Next Squid';
+    $('r-nsv').textContent=fm(d.nsv); $('r-nsv').className='result-value positive';
+  } else {
+    $('r-nsv-card').style.display='none';
+  }
+
+  // Value table
+  const vtw=$('vt-wrap'); vtw.style.display='';
+  const tbl=$('vt-table');
+  let html='<thead><tr><th>Final Squids</th><th>Frequency</th><th>Avg Payout</th><th>Marginal Value</th></tr></thead><tbody>';
+  for(const row of d.sqt){
+    const isCur=row.sq===cfg.heroSquids;
+    html+=`<tr${isCur?' class="current"':''}>
+      <td class="mono">${row.sq}${isCur?' \u25C0':''}</td>
+      <td>${(row.freq*100).toFixed(1)}%</td>
+      <td class="mono" style="color:${row.avgPay>=0?'#3fb950':'#f85149'}">${fm(row.avgPay)}</td>
+      <td class="mono" style="color:${row.marg!==null&&row.marg>=0?'#3fb950':'#f85149'}">${row.marg!==null?fm(row.marg):'\u2014'}</td>
+    </tr>`;
+  }
+  html+='</tbody>';
+  tbl.innerHTML=html;
+
+  // Histogram
+  $('hist-wrap').style.display='block';
+  const el=$('histogram');
+  if(d.analytical){
+    // Discrete bars for exact solution
+    const maxF=Math.max(...d.hist.map(b=>b.f));
+    el.innerHTML=d.hist.map(b=>{
+      const pct=(b.f*100).toFixed(1);
+      const h=maxF>0?Math.max(2,(b.f/maxF)*70):2;
+      const lo=b.v>=0?'+$'+Math.abs(b.v).toFixed(0):'-$'+Math.abs(b.v).toFixed(0);
+      return `<div class="hist-bar-wrap">
+        <div class="hist-pct">${pct}%</div>
+        <div class="hist-bar" style="height:${h}px;background:${b.v>=0?'#238636':'#da3633'}"></div>
+        <div class="hist-label">${lo}</div>
+      </div>`;
+    }).join('');
+  }else{
+    // Continuous bins for Monte Carlo
+    const maxC=Math.max(...d.hist.map(b=>b.c));
+    el.innerHTML=d.hist.map(b=>{
+      const pct=(b.c/cfg.trials*100).toFixed(1);
+      const h=maxC>0?Math.max(2,(b.c/maxC)*70):2;
+      const lo=b.lo>=0?'+$'+Math.abs(b.lo).toFixed(0):'-$'+Math.abs(b.lo).toFixed(0);
+      return `<div class="hist-bar-wrap">
+        <div class="hist-pct">${pct>0.5?pct+'%':''}</div>
+        <div class="hist-bar" style="height:${h}px;background:${b.lo>=0?'#238636':'#da3633'}"></div>
+        <div class="hist-label">${lo}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ===== LISTENERS =====
+$('players').addEventListener('input',()=>{syncTotalSquids();updatePlaceholder();buildPresets();updateOppDistVisibility();});
+$('total-squids').addEventListener('input',()=>{clampInputs();buildPresets();syncTiers();revalidateToggles();updateOppDistVisibility();});
+$('squids-dealt').addEventListener('input',()=>{clampInputs();revalidateToggles();updateOppDistVisibility();});
+$('hero-squids').addEventListener('input',()=>{clampInputs();updateOppDistVisibility();});
+
+// ===== INIT =====
+syncTotalSquids();
+updatePlaceholder();
+buildPresets();
+updateOppDistVisibility();
+</script>
+</body>
+</html>
