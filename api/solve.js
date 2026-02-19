@@ -241,6 +241,7 @@ function solveProgMult(cfg) {
 
 // === VERCEL HANDLER ===
 const { verifyGoogleToken } = require('./_lib/auth');
+const { checkSubscription } = require('./_lib/stripe');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -277,8 +278,17 @@ module.exports = async function handler(req, res) {
       return res.status(401).json({ error: 'Sign in with Google to use this format' });
     }
     const user = await verifyGoogleToken(auth.slice(7));
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid or expired token. Please sign in again.' });
+    if (!user || user.error) {
+      return res.status(401).json({ error: 'Auth failed: ' + (user ? user.error : 'no result') });
+    }
+
+    try {
+      const subscribed = await checkSubscription(user.email);
+      if (!subscribed) {
+        return res.status(403).json({ error: 'Subscription required' });
+      }
+    } catch (err) {
+      return res.status(500).json({ error: 'Stripe error: ' + err.message });
     }
   }
 

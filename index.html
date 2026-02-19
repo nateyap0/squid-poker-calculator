@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Squid Poker Value Calculator</title>
+<title>Squid Value Calculator</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh;padding:16px;line-height:1.5}
@@ -80,12 +80,29 @@ h1{text-align:center;font-size:1.6rem;margin-bottom:4px;color:#e6edf3}
 .opp-dist-sum.invalid{color:#f85149}
 .auth-bar{position:fixed;top:12px;right:16px;display:flex;align-items:center;gap:8px;z-index:100}
 .auth-bar .user-info{display:flex;align-items:center;gap:8px;font-size:.8rem;color:#8b949e}
+@media(max-width:600px){.auth-bar{position:static;justify-content:center;margin-bottom:8px}.auth-bar .user-info{flex-wrap:wrap;justify-content:center}h1{font-size:1.3rem}}
 .auth-bar .user-info img{width:24px;height:24px;border-radius:50%}
 .auth-bar .sign-out{color:#58a6ff;cursor:pointer;font-size:.75rem;text-decoration:underline;background:none;border:none;padding:0}
 .auth-bar .sign-out:hover{color:#79c0ff}
-.format-tab.locked{opacity:.6}
-.format-tab.locked::after{content:' \1F512';font-size:.7rem}
+.format-tab .pro-badge{font-size:.6rem;padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:middle;font-weight:700;letter-spacing:.5px}
+.format-tab.locked .pro-badge{background:#30363d;color:#8b949e}
+.format-tab.locked::before{content:'\1F512';font-size:.6rem;margin-right:4px}
+.format-tab:not(.locked) .pro-badge{background:#635bff;color:#fff}
+.format-tab.locked{opacity:.7}
 .auth-prompt{text-align:center;font-size:.85rem;color:#d29922;margin-bottom:12px}
+.subscribe-prompt{text-align:center;padding:32px 20px;color:#c9d1d9}
+.subscribe-prompt h3{font-size:1.15rem;color:#e6edf3;margin-bottom:12px}
+.subscribe-prompt .price-tag{font-size:1.5rem;font-weight:700;color:#e6edf3;margin-bottom:6px}
+.subscribe-prompt .price-tag span{font-size:.85rem;font-weight:400;color:#8b949e}
+.subscribe-prompt .sub-details{font-size:.8rem;color:#8b949e;margin-bottom:16px}
+.subscribe-prompt ul{text-align:left;display:inline-block;list-style:none;margin:0 0 18px;padding:0;font-size:.85rem}
+.subscribe-prompt ul li{padding:4px 0;color:#c9d1d9}
+.subscribe-prompt ul li::before{content:'\2713 ';color:#3fb950;font-weight:700;margin-right:6px}
+.btn-subscribe{background:#635bff;color:#fff;padding:10px 24px;border:none;border-radius:6px;cursor:pointer;font-size:.95rem;font-weight:600;transition:background .15s}
+.btn-subscribe:hover{background:#7a73ff}
+.btn-subscribe:disabled{opacity:.5;cursor:not-allowed}
+.manage-link{font-size:.75rem;color:#58a6ff;cursor:pointer;text-decoration:underline;background:none;border:none;padding:0}
+.manage-link:hover{color:#79c0ff}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -93,16 +110,16 @@ h1{text-align:center;font-size:1.6rem;margin-bottom:4px;color:#e6edf3}
 
 <div class="auth-bar" id="auth-bar">
   <div id="auth-signed-out"><div id="g_id_onload" data-client_id="411313261288-voso2pnj4v97bk80klmacq15tvqj5hqv.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false"></div><div class="g_id_signin" data-type="standard" data-size="medium" data-theme="filled_black" data-text="signin_with" data-shape="rectangular"></div></div>
-  <div id="auth-signed-in" style="display:none" class="user-info"><img id="auth-pic" src="" alt=""><span id="auth-name"></span><button class="sign-out" onclick="signOut()">Sign out</button></div>
+  <div id="auth-signed-in" style="display:none" class="user-info"><img id="auth-pic" src="" alt=""><span id="auth-name"></span><button id="manage-sub-btn" class="manage-link" onclick="manageSubscription()" style="display:none">Manage Subscription</button><button class="sign-out" onclick="signOut()">Sign out</button></div>
 </div>
 
-<h1>Squid Poker Value Calculator</h1>
+<h1>Squid Value Calculator</h1>
 <p class="subtitle">Calculate the value of each squid from any game state</p>
 
 <div class="format-tabs">
   <div class="format-tab active" data-fmt="single" onclick="setFormat('single')">Single Squid</div>
-  <div class="format-tab" data-fmt="progressive" onclick="setFormat('progressive')">Progressive</div>
-  <div class="format-tab" data-fmt="multiplier" onclick="setFormat('multiplier')">Multiplier</div>
+  <div class="format-tab" data-fmt="progressive" onclick="setFormat('progressive')">Progressive<span class="pro-badge">PRO</span></div>
+  <div class="format-tab" data-fmt="multiplier" onclick="setFormat('multiplier')">Multiplier<span class="pro-badge">PRO</span></div>
 </div>
 
 <div class="panel">
@@ -198,6 +215,19 @@ h1{text-align:center;font-size:1.6rem;margin-bottom:4px;color:#e6edf3}
     </div>
   </div>
 
+  <div id="subscribe-prompt" class="subscribe-prompt hidden">
+    <h3>Unlock Pro Formats</h3>
+    <div class="price-tag">US$49 <span>/month</span></div>
+    <div class="sub-details">Linked to your Google account &middot; Cancel anytime</div>
+    <ul>
+      <li>Progressive format with final double &amp; double-per-hand</li>
+      <li>Multiplier format with customizable tier presets</li>
+      <li>Opponent squid distribution input</li>
+      <li>Full squid value breakdown &amp; payout histogram</li>
+    </ul>
+    <button class="btn-subscribe" id="subscribe-btn" onclick="subscribe()">Subscribe &mdash; US$49/mo</button>
+  </div>
+
   <div class="progress-wrap" id="progress-wrap">
     <div class="progress-bar" id="progress"></div>
   </div>
@@ -247,13 +277,13 @@ h1{text-align:center;font-size:1.6rem;margin-bottom:4px;color:#e6edf3}
 </div>
 
 <script>
-// ===== AUTH =====
+// ===== AUTH + SUBSCRIPTION =====
 let idToken = localStorage.getItem('squid_id_token');
 let authUser = JSON.parse(localStorage.getItem('squid_auth_user') || 'null');
+let isSubscribed = localStorage.getItem('squid_subscribed') === 'true';
 
 function handleCredentialResponse(response) {
   idToken = response.credential;
-  // Decode JWT payload for display info
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
   authUser = { name: payload.name, picture: payload.picture, email: payload.email };
   localStorage.setItem('squid_id_token', idToken);
@@ -281,6 +311,7 @@ function updateAuthUI() {
     document.getElementById('auth-name').textContent = authUser.name;
     document.getElementById('auth-pic').src = authUser.picture || '';
   }
+  document.getElementById('manage-sub-btn').style.display = signedIn ? '' : 'none';
 }
 
 function updateFormatTabs() {
@@ -292,7 +323,51 @@ function updateFormatTabs() {
   });
 }
 
-function isSignedIn() { return !!idToken; }
+function isSignedIn() { return !!idToken && !isTokenExpired(); }
+
+function isTokenExpired() {
+  if (!idToken) return true;
+  try {
+    const payload = JSON.parse(atob(idToken.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch { return true; }
+}
+
+function ensureValidToken() {
+  if (!idToken) return false;
+  if (isTokenExpired()) {
+    idToken = null;
+    localStorage.removeItem('squid_id_token');
+    updateAuthUI();
+    updateFormatTabs();
+    google.accounts.id.prompt();
+    return false;
+  }
+  return true;
+}
+
+function subscribe() {
+  const email = authUser ? authUser.email : '';
+  let url = 'https://buy.stripe.com/8x214o7Ks9UPanZced0Ba00';
+  if (email) url += '?prefilled_email=' + encodeURIComponent(email);
+  window.location.href = url;
+}
+
+function manageSubscription() {
+  window.open('https://billing.stripe.com/p/login/8x214o7Ks9UPanZced0Ba00', '_blank');
+}
+
+function checkPaidReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('paid')) {
+    window.history.replaceState({}, '', window.location.pathname);
+    isSubscribed = true;
+    localStorage.setItem('squid_subscribed', 'true');
+    updateAuthUI();
+    updateFormatTabs();
+    setFormat('progressive');
+  }
+}
 
 let currentFormat = 'single';
 let suddenDeath = false;
@@ -316,6 +391,11 @@ function setFormat(fmt){
   show('.fmt-single',fmt==='single');
   show('.fmt-progressive',fmt==='progressive'||fmt==='multiplier');
   show('.fmt-multiplier',fmt==='multiplier');
+
+  // Always hide subscribe prompt on format change — it only shows on 403 from /api/solve
+  document.getElementById('subscribe-prompt').classList.add('hidden');
+  document.getElementById('run-btn').classList.remove('hidden');
+
   syncTotalSquids();
   updatePlaceholder();
   buildPresets();
@@ -592,6 +672,8 @@ function getConfig(){
 async function run(){
   clampInputs();
   const cfg=getConfig();
+  // Check token before calling paid formats
+  if(cfg.format!=='single'&&!ensureValidToken()) return;
   const btn=document.getElementById('run-btn');
   const pw=document.getElementById('progress-wrap');
   const pb=document.getElementById('progress');
@@ -607,6 +689,22 @@ async function run(){
       updateAuthUI();updateFormatTabs();
       setFormat('single');
       throw new Error('Session expired. Please sign in again.');
+    }
+    if(!resp.ok&&resp.status!==403){
+      const err=await resp.json().catch(()=>({error:'Server error'}));
+      throw new Error(err.error||'Request failed');
+    }
+    if(resp.status===403){
+      isSubscribed=false;
+      localStorage.removeItem('squid_subscribed');
+      updateAuthUI();updateFormatTabs();
+      // Show subscribe prompt inline
+      document.getElementById('subscribe-prompt').classList.remove('hidden');
+      document.getElementById('run-btn').classList.add('hidden');
+      const sbtn=document.getElementById('subscribe-btn');
+      sbtn.disabled=false; sbtn.textContent='Subscribe \u2014 US$49/mo';
+      btn.disabled=false;
+      return;
     }
     if(!resp.ok){const err=await resp.json().catch(()=>({error:'Server error'}));throw new Error(err.error||'Request failed');}
     const d=await resp.json();
@@ -715,12 +813,18 @@ $('squids-dealt').addEventListener('input',()=>{clampInputs();revalidateToggles(
 $('hero-squids').addEventListener('input',()=>{clampInputs();updateOppDistVisibility();});
 
 // ===== INIT =====
+// Clear expired token on load
+if (idToken && isTokenExpired()) {
+  idToken = null;
+  localStorage.removeItem('squid_id_token');
+}
 syncTotalSquids();
 updatePlaceholder();
 buildPresets();
 updateOppDistVisibility();
 updateAuthUI();
 updateFormatTabs();
+checkPaidReturn();
 </script>
 </body>
 </html>

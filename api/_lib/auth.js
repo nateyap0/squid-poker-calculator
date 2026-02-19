@@ -15,8 +15,8 @@ async function verifyGoogleToken(token) {
       name: payload.name,
       picture: payload.picture,
     };
-  } catch {
-    return null;
+  } catch (err) {
+    return { error: err.message };
   }
 }
 
